@@ -1,0 +1,36 @@
+# BiblioTK en Kubernetes (Docker Desktop): kubectl apply -k InfraBiblioTK
+# Antes: imágenes construidas (docker compose build) y cargadas en el clúster, y k8s/secretos.env
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: bibliotk
+
+resources:
+  - k8s/namespace.yaml
+  - k8s/mariadb.yaml
+  - k8s/redis.yaml
+  - k8s/backends.yaml
+  - k8s/notificaciones.yaml
+  - k8s/apps.yaml
+  - k8s/gateway.yaml
+
+# Los ConfigMap y el Secret llevan un sufijo con su contenido: si cambian, los pods se recrean solos
+configMapGenerator:
+  - name: bibliotk-config
+    envs:
+      - k8s/config.env
+  - name: gateway-nginx
+    files:
+      - default.conf=gateway/nginx.conf
+  - name: mariadb-initdb
+    files:
+      - mariadb/initdb/01-esquema.sql
+      - mariadb/initdb/02-materiales.sql
+
+secretGenerator:
+  - name: bibliotk-secretos
+    envs:
+      - k8s/secretos.env
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: bibliotk

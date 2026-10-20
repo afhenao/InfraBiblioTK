@@ -1,0 +1,5 @@
+# Todo BiblioTK vive en su propio espacio de nombres: kubectl -n bibliotk get pods
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bibliotk

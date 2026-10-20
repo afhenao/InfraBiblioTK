@@ -1,0 +1,571 @@
+# Backends Node/Express de BiblioTK (uno por microservicio)
+# Mismo formato para cada servicio. Se aplica todo junto con: kubectl apply -k InfraBiblioTK
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registro
+  labels:
+    app: registro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registro
+  template:
+    metadata:
+      labels:
+        app: registro
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      # No arranca hasta que la BD (y Redis, si hace falta) acepten conexiones
+      initContainers:
+        - name: esperar-dependencias
+          image: bibliotk/registro:local
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: registro
+          image: bibliotk/registro:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: bibliotk-config
+          env:
+            - name: PORT
+              value: "3000"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_PASSWORD
+            - name: NOTIFICACIONES_CLAVE
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: NOTIFICACIONES_CLAVE
+          readinessProbe:
+            httpGet:
+              path: /RegistroBiblioTK/health
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /RegistroBiblioTK/health
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registro
+spec:
+  selector:
+    app: registro
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: login
+  labels:
+    app: login
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: login
+  template:
+    metadata:
+      labels:
+        app: login
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      # No arranca hasta que la BD (y Redis, si hace falta) acepten conexiones
+      initContainers:
+        - name: esperar-dependencias
+          image: bibliotk/login:local
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: login
+          image: bibliotk/login:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: bibliotk-config
+          env:
+            - name: PORT
+              value: "3001"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_PASSWORD
+            - name: NOTIFICACIONES_CLAVE
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: NOTIFICACIONES_CLAVE
+          readinessProbe:
+            httpGet:
+              path: /BiblioTK/healthLogin
+              port: 3001
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /BiblioTK/healthLogin
+              port: 3001
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: login
+spec:
+  selector:
+    app: login
+  ports:
+    - port: 3001
+      targetPort: 3001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: perfil
+  labels:
+    app: perfil
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: perfil
+  template:
+    metadata:
+      labels:
+        app: perfil
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      # No arranca hasta que la BD (y Redis, si hace falta) acepten conexiones
+      initContainers:
+        - name: esperar-dependencias
+          image: bibliotk/perfil:local
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: perfil
+          image: bibliotk/perfil:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3002
+          envFrom:
+            - configMapRef:
+                name: bibliotk-config
+          env:
+            - name: PORT
+              value: "3002"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_PASSWORD
+            - name: NOTIFICACIONES_CLAVE
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: NOTIFICACIONES_CLAVE
+          readinessProbe:
+            httpGet:
+              path: /PerfilBiblioTK/health
+              port: 3002
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /PerfilBiblioTK/health
+              port: 3002
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: perfil
+spec:
+  selector:
+    app: perfil
+  ports:
+    - port: 3002
+      targetPort: 3002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: materiales
+  labels:
+    app: materiales
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: materiales
+  template:
+    metadata:
+      labels:
+        app: materiales
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      # No arranca hasta que la BD (y Redis, si hace falta) acepten conexiones
+      initContainers:
+        - name: esperar-dependencias
+          image: bibliotk/materiales:local
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: materiales
+          image: bibliotk/materiales:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3003
+          envFrom:
+            - configMapRef:
+                name: bibliotk-config
+          env:
+            - name: PORT
+              value: "3003"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_PASSWORD
+            - name: NOTIFICACIONES_CLAVE
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: NOTIFICACIONES_CLAVE
+          volumeMounts:
+            - name: portadas
+              mountPath: /app/uploads
+          readinessProbe:
+            httpGet:
+              path: /MaterialesBiblioTK/health
+              port: 3003
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /MaterialesBiblioTK/health
+              port: 3003
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: portadas
+          persistentVolumeClaim:
+            claimName: portadas
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: materiales
+spec:
+  selector:
+    app: materiales
+  ports:
+    - port: 3003
+      targetPort: 3003
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  labels:
+    app: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      # No arranca hasta que la BD (y Redis, si hace falta) acepten conexiones
+      initContainers:
+        - name: esperar-dependencias
+          image: bibliotk/dashboard:local
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: dashboard
+          image: bibliotk/dashboard:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3004
+          envFrom:
+            - configMapRef:
+                name: bibliotk-config
+          env:
+            - name: PORT
+              value: "3004"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_PASSWORD
+            - name: NOTIFICACIONES_CLAVE
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: NOTIFICACIONES_CLAVE
+          readinessProbe:
+            httpGet:
+              path: /DashboardBibliotk/health
+              port: 3004
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /DashboardBibliotk/health
+              port: 3004
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - port: 3004
+      targetPort: 3004
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prestamos
+  labels:
+    app: prestamos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prestamos
+  template:
+    metadata:
+      labels:
+        app: prestamos
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      # No arranca hasta que la BD (y Redis, si hace falta) acepten conexiones
+      initContainers:
+        - name: esperar-dependencias
+          image: bibliotk/prestamos:local
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: prestamos
+          image: bibliotk/prestamos:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3005
+          envFrom:
+            - configMapRef:
+                name: bibliotk-config
+          env:
+            - name: PORT
+              value: "3005"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: DB_PASSWORD
+            - name: NOTIFICACIONES_CLAVE
+              valueFrom:
+                secretKeyRef:
+                  name: bibliotk-secretos
+                  key: NOTIFICACIONES_CLAVE
+          readinessProbe:
+            httpGet:
+              path: /PrestamosBiblioTK/health
+              port: 3005
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /PrestamosBiblioTK/health
+              port: 3005
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prestamos
+spec:
+  selector:
+    app: prestamos
+  ports:
+    - port: 3005
+      targetPort: 3005
+---
+# Portadas locales de Materiales (una sola réplica: el volumen es ReadWriteOnce)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portadas
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
