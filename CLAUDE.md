@@ -21,7 +21,7 @@ servicios ──▶ mariadb:3306 (volumen)    notificaciones ──▶ redis:637
 ```
 
 - **Un solo origen:** una sola cookie de sesión, sin CORS entre apps y cada servicio con su prefijo de siempre. Por eso las apps se compilan con rutas relativas (`VITE_*` vacías o con `/Prefijo/...`) y una subruta (`VITE_BASE`); el gateway quita la subruta antes de pasar a cada nginx.
-- `gateway/nginx.conf` sirve **igual** para Compose y Kubernetes: los nombres (`login`, `front-user`…) son servicios en los dos.
+- `gateway/nginx.conf.template` sirve **igual** para Compose y Kubernetes: los nombres (`login`, `front-user`…) son servicios en los dos. Es una plantilla: la imagen de nginx pone el DNS del contenedor (`NGINX_LOCAL_RESOLVERS`: Docker o kube-dns) y el sufijo `DOMINIO` (vacío en Compose, `.bibliotk.svc.cluster.local` en Kubernetes). Los nombres se resuelven en cada petición (cacheados 10 s): antes se resolvían solo al arrancar y, al recrear un contenedor, el gateway seguía mandando a la IP vieja, que podía ser de otra app.
 - `/NotificacionesBiblioTK/interno/` no se publica (solo los backends avisan eventos, dentro de la red) y además exige `NOTIFICACIONES_CLAVE`.
 - `/gateway-salud`: salud del propio gateway.
 
@@ -31,7 +31,7 @@ servicios ──▶ mariadb:3306 (volumen)    notificaciones ──▶ redis:637
 |---|---|
 | `docker-compose.yml` | Los 15 servicios (MariaDB, Redis, 7 backends, 5 apps y el gateway). Construye las imágenes `bibliotk/<servicio>:local` desde las carpetas vecinas |
 | `.env.example` | Contraseñas, `NOTIFICACIONES_CLAVE` y `MOVIL_URL` para Compose (copiar como `.env`, que no se sube) |
-| `gateway/nginx.conf` | Reparto por prefijo, WebSocket, bloqueo de `/interno` |
+| `gateway/nginx.conf.template` | Reparto por prefijo, WebSocket, bloqueo de `/interno` y DNS en cada petición |
 | `mariadb/initdb/` | `01-esquema.sql` (usuarios, materiales, préstamos, idénticas a la BD local) y `02-materiales.sql` (8 libros de ejemplo). Solo corren con el volumen vacío |
 | `kustomization.yaml` | Kubernetes: junta `k8s/*.yaml` y genera los ConfigMap (configuración, nginx, SQL inicial) y el Secret |
 | `k8s/` | `namespace`, `mariadb` (StatefulSet + volumen), `redis`, `backends` (6 servicios + volumen de portadas), `notificaciones` (**2 réplicas**), `apps` (5 nginx) y `gateway` (LoadBalancer en el puerto 80) |
@@ -49,7 +49,7 @@ docker compose down                 # parar (conserva la BD); down -v la borra
 docker compose up -d redis          # solo Redis, para desarrollar con npm run dev
 ```
 
-- La BD del contenedor es **otra** (volumen `bd`), no la MariaDB local: arranca con el esquema y los 8 libros, sin cuentas. Para verla en HeidiSQL: `127.0.0.1`, puerto **3307**, base `bibliotk`, usuario y contraseña `DB_USER`/`DB_PASSWORD` de `InfraBiblioTK/.env` (sin `.env`: `bibliotk` / `bibliotk-local`). Solo se publica en el propio computador.
+- La BD del contenedor es **otra** (volumen `bd`), no la MariaDB local: arranca con el esquema y los 8 libros, sin cuentas. Para verla en HeidiSQL: `127.0.0.1`, puerto **3307**, base `bibliotk`, usuario y contraseña **de cuando se creó el volumen**: `DB_USER`/`DB_PASSWORD` (o `root` / `DB_ROOT_PASSWORD`) de `InfraBiblioTK/.env`; sin `.env`, `bibliotk` / `bibliotk-local` o `root` / `bibliotk-root-local`. No es la contraseña de la MariaDB local. Solo se publica en el propio computador.
 - Usar `http://localhost:8080` en el computador (no `127.0.0.1`): la cookie y las URLs de destino son de `localhost`.
 
 ## Kubernetes (Docker Desktop)
@@ -95,6 +95,7 @@ kubectl -n bibliotk exec -it mariadb-0 -- mariadb -u bibliotk -p bibliotk -e "UP
 
 ## Problemas conocidos
 
+- **Las contraseñas de MariaDB se fijan la primera vez** (volumen vacío). Si después cambian en `.env` o `k8s/secretos.env`, los servicios reciben "Access denied": hay que cambiarlas también dentro de MariaDB (`ALTER USER … IDENTIFIED BY …` como root, con la contraseña vieja) o borrar el volumen.
 - Las variables `VITE_*` quedan fijas al compilar cada app: para servir en otro dominio o puerto hay que reconstruir las imágenes de las apps (y cambiar `ALLOWED_ORIGIN_1` y `APP_*_URL`).
 - Sin `.env`/`secretos.env` propios, Compose usa contraseñas de ejemplo: aceptables solo en el propio computador (la BD no se publica fuera de la red de Compose).
 - Docker Desktop de este equipo se cae al arrancar si quedan sockets viejos en `%LOCALAPPDATA%\Docker\run` o `%LOCALAPPDATA%\docker-secrets-engine` ("The file cannot be accessed by the system"): cerrar Docker Desktop, renombrar esa carpeta y volver a abrirlo (Windows no deja borrar esos sockets hasta reiniciar).

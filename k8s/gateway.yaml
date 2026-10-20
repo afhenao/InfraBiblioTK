@@ -1,4 +1,4 @@
-# Gateway nginx: único punto de entrada (mismo gateway/nginx.conf que Docker Compose).
+# Gateway nginx: único punto de entrada (misma gateway/nginx.conf.template que Docker Compose).
 # Service LoadBalancer: Docker Desktop lo publica en http://localhost (puerto 80)
 apiVersion: apps/v1
 kind: Deployment
@@ -26,9 +26,16 @@ spec:
           image: nginxinc/nginx-unprivileged:1.27-alpine
           ports:
             - containerPort: 8080
+          env:
+            # La imagen toma kube-dns de /etc/resolv.conf; nginx no usa los dominios de búsqueda,
+            # así que los servicios van con su nombre completo
+            - name: NGINX_ENTRYPOINT_LOCAL_RESOLVERS
+              value: "1"
+            - name: DOMINIO
+              value: .bibliotk.svc.cluster.local
           volumeMounts:
             - name: configuracion
-              mountPath: /etc/nginx/conf.d
+              mountPath: /etc/nginx/templates
               readOnly: true
           readinessProbe:
             httpGet:

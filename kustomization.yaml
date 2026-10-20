@@ -20,7 +20,7 @@ configMapGenerator:
       - k8s/config.env
   - name: gateway-nginx
     files:
-      - default.conf=gateway/nginx.conf
+      - default.conf.template=gateway/nginx.conf.template
   - name: mariadb-initdb
     files:
       - mariadb/initdb/01-esquema.sql
