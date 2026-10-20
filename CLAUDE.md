@@ -30,12 +30,13 @@ servicios ──▶ mariadb:3306 (volumen)    notificaciones ──▶ redis:637
 | Archivo | Para qué |
 |---|---|
 | `docker-compose.yml` | Los 15 servicios (MariaDB, Redis, 7 backends, 5 apps y el gateway). Construye las imágenes `bibliotk/<servicio>:local` desde las carpetas vecinas |
-| `.env.example` | Contraseñas, `NOTIFICACIONES_CLAVE` y `MOVIL_URL` para Compose (copiar como `.env`, que no se sube) |
+| `.env.example` | Contraseñas y `NOTIFICACIONES_CLAVE` para Compose (copiar como `.env`, que no se sube) |
+| `scripts/ip-celular.ps1` | Pone la IP actual del Wi-Fi en el QR del celular (`movil.env` en Compose, `set env` en Kubernetes) |
 | `gateway/nginx.conf.template` | Reparto por prefijo, WebSocket, bloqueo de `/interno` y DNS en cada petición |
 | `mariadb/initdb/` | `01-esquema.sql` (usuarios, materiales, préstamos, idénticas a la BD local) y `02-materiales.sql` (8 libros de ejemplo). Solo corren con el volumen vacío |
 | `kustomization.yaml` | Kubernetes: junta `k8s/*.yaml` y genera los ConfigMap (configuración, nginx, SQL inicial) y el Secret |
 | `k8s/` | `namespace`, `mariadb` (StatefulSet + volumen), `redis`, `backends` (6 servicios + volumen de portadas), `notificaciones` (**2 réplicas**), `apps` (5 nginx) y `gateway` (LoadBalancer en el puerto 80) |
-| `k8s/config.env` | Configuración común sin secretos (orígenes, URLs de las apps, `MOVIL_URL`) |
+| `k8s/config.env` | Configuración común sin secretos (orígenes, URLs de las apps, `MOVIL_URL` de base) |
 | `k8s/secretos.env.example` | Copiar como `k8s/secretos.env` (no se sube) |
 
 ## Docker Compose
@@ -73,14 +74,16 @@ kubectl delete -k .                               # quitarlo (el volumen de Mari
 
 ## El QR del celular (`MOVIL_URL`)
 
-Dentro de un contenedor no se ve la IP del computador, así que hay que darla. IP del Wi-Fi en PowerShell:
+Dentro de un contenedor no se ve la IP del computador, así que hay que darla. `scripts/ip-celular.ps1` toma la IP actual del Wi-Fi y la pone donde haga falta:
 
 ```powershell
-(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Wi-Fi).IPAddress
+powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1          # o -Interfaz Ethernet
 ```
 
-- **Compose:** `MOVIL_URL=http://<IP>:8080/movil/` en `InfraBiblioTK/.env` (o como variable de entorno) y `docker compose up -d`.
-- **Kubernetes:** `MOVIL_URL=http://<IP>/movil/` en `k8s/config.env` y `kubectl apply -k .` (o, sin tocar el archivo, `kubectl -n bibliotk set env deployment/notificaciones MOVIL_URL=http://<IP>/movil/`).
+- **Compose:** escribe `MOVIL_URL=http://<IP>:8080/movil/` en `movil.env` (no se sube; `notificaciones` lo lee con `env_file`, opcional) y, si Compose está arriba, recrea `notificaciones`.
+- **Kubernetes:** si existe el namespace `bibliotk`, hace `kubectl -n bibliotk set env deployment/notificaciones MOVIL_URL=http://<IP>/movil/` (`k8s/config.env` trae `http://localhost/movil/` de base; un `kubectl apply -k .` lo devuelve a ese valor, así que hay que volver a correr el script).
+- **Hay que correrlo cada vez que cambia la red** (la IP del Wi-Fi cambia) y volver a cargar la landing para que el QR sea el nuevo.
+- Si el celular dice "rechazó la conexión" o "no se puede acceder" con la IP correcta, la red no deja que los equipos se vean entre sí (pasa en redes de universidad u oficina, con aislamiento de clientes). Solución: conectar el computador al punto de acceso del celular y volver a correr el script.
 
 ## Probar las apps del bibliotecario o del superadministrador
 

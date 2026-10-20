@@ -1,7 +1,7 @@
 # BiblioTK completo con Docker Compose: http://localhost:8080
 #   docker compose up -d --build        todo (MariaDB, Redis, 7 servicios, 5 apps y el gateway)
 #   docker compose up -d redis          solo Redis, para desarrollo local con npm run dev
-# Valores sensibles y la URL del celular: InfraBiblioTK/.env (ver .env.example). Los de abajo
+# Valores sensibles: InfraBiblioTK/.env (ver .env.example); la URL del celular, scripts/ip-celular.ps1. Los de abajo
 # son solo para usar en el propio computador: la BD no se publica fuera de la red de Compose.
 name: bibliotk
 
@@ -126,8 +126,11 @@ services:
       <<: *entorno
       PORT: "3006"
       REDIS_URL: redis://redis:6379
-      # El contenedor no ve la IP del computador: para el celular, http://<IP en la red local>:8080/movil/
-      MOVIL_URL: ${MOVIL_URL:-http://localhost:8080/movil/}
+    # El contenedor no ve la IP del computador: MOVIL_URL (para el QR del celular) la escribe
+    # scripts/ip-celular.ps1 en movil.env con la IP actual del Wi-Fi
+    env_file:
+      - path: ./movil.env
+        required: false
 
   front:
     build: ../BiblioTK-front
