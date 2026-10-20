@@ -33,6 +33,10 @@ services:
       MARIADB_USER: ${DB_USER:-bibliotk}
       MARIADB_PASSWORD: ${DB_PASSWORD:-bibliotk-local}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-bibliotk-root-local}
+    # Para abrirla con HeidiSQL: 127.0.0.1:3307 (el 3306 es de la MariaDB local).
+    # Solo en este computador: no se publica hacia la red
+    ports:
+      - "127.0.0.1:3307:3306"
     volumes:
       - bd:/var/lib/mysql
       # Esquema y catálogo de ejemplo: solo la primera vez (volumen vacío)

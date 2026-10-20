@@ -49,7 +49,7 @@ docker compose down                 # parar (conserva la BD); down -v la borra
 docker compose up -d redis          # solo Redis, para desarrollar con npm run dev
 ```
 
-- La BD del contenedor es **otra** (volumen `bd`), no la MariaDB local: arranca con el esquema y los 8 libros, sin cuentas.
+- La BD del contenedor es **otra** (volumen `bd`), no la MariaDB local: arranca con el esquema y los 8 libros, sin cuentas. Para verla en HeidiSQL: `127.0.0.1`, puerto **3307**, base `bibliotk`, usuario y contraseña `DB_USER`/`DB_PASSWORD` de `InfraBiblioTK/.env` (sin `.env`: `bibliotk` / `bibliotk-local`). Solo se publica en el propio computador.
 - Usar `http://localhost:8080` en el computador (no `127.0.0.1`): la cookie y las URLs de destino son de `localhost`.
 
 ## Kubernetes (Docker Desktop)
