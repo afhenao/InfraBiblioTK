@@ -25,7 +25,7 @@ spec:
       initContainers:
         - name: esperar-dependencias
           image: bibliotk/notificaciones:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done; until nc -z redis 6379; do echo esperando a redis; sleep 2; done"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -34,7 +34,7 @@ spec:
       containers:
         - name: notificaciones
           image: bibliotk/notificaciones:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3006
           envFrom:

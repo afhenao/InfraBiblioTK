@@ -24,7 +24,7 @@ spec:
       containers:
         - name: front
           image: bibliotk/front:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           readinessProbe:
@@ -78,7 +78,7 @@ spec:
       containers:
         - name: front-user
           image: bibliotk/front-user:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           readinessProbe:
@@ -132,7 +132,7 @@ spec:
       containers:
         - name: front-admin
           image: bibliotk/front-admin:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           readinessProbe:
@@ -186,7 +186,7 @@ spec:
       containers:
         - name: front-superadmin
           image: bibliotk/front-superadmin:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           readinessProbe:
@@ -240,7 +240,7 @@ spec:
       containers:
         - name: movil
           image: bibliotk/movil:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           readinessProbe:

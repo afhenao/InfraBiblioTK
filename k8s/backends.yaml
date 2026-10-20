@@ -25,7 +25,7 @@ spec:
       initContainers:
         - name: esperar-dependencias
           image: bibliotk/registro:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -34,7 +34,7 @@ spec:
       containers:
         - name: registro
           image: bibliotk/registro:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           envFrom:
@@ -117,7 +117,7 @@ spec:
       initContainers:
         - name: esperar-dependencias
           image: bibliotk/login:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -126,7 +126,7 @@ spec:
       containers:
         - name: login
           image: bibliotk/login:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3001
           envFrom:
@@ -209,7 +209,7 @@ spec:
       initContainers:
         - name: esperar-dependencias
           image: bibliotk/perfil:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -218,7 +218,7 @@ spec:
       containers:
         - name: perfil
           image: bibliotk/perfil:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3002
           envFrom:
@@ -301,7 +301,7 @@ spec:
       initContainers:
         - name: esperar-dependencias
           image: bibliotk/materiales:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -310,7 +310,7 @@ spec:
       containers:
         - name: materiales
           image: bibliotk/materiales:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3003
           envFrom:
@@ -400,7 +400,7 @@ spec:
       initContainers:
         - name: esperar-dependencias
           image: bibliotk/dashboard:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -409,7 +409,7 @@ spec:
       containers:
         - name: dashboard
           image: bibliotk/dashboard:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3004
           envFrom:
@@ -492,7 +492,7 @@ spec:
       initContainers:
         - name: esperar-dependencias
           image: bibliotk/prestamos:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["sh", "-c", "until nc -z mariadb 3306; do echo esperando a mariadb; sleep 2; done"]
           securityContext:
             allowPrivilegeEscalation: false
@@ -501,7 +501,7 @@ spec:
       containers:
         - name: prestamos
           image: bibliotk/prestamos:local
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 3005
           envFrom:

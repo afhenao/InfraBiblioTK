@@ -54,7 +54,7 @@ docker compose up -d redis          # solo Redis, para desarrollar con npm run d
 
 ## Kubernetes (Docker Desktop)
 
-Requisitos: Kubernetes activado en Docker Desktop (este equipo usa el modo **kind**, nodo `desktop-control-plane`) y las imágenes construidas con `docker compose build`. El nodo las toma del motor de Docker a través del *registry mirror* de Docker Desktop, por eso los manifiestos usan `imagePullPolicy: IfNotPresent` (con `Never` fallan: la imagen no está "dentro" del nodo hasta que se pide).
+Requisitos: Kubernetes activado en Docker Desktop (este equipo usa el modo **kind**, nodo `desktop-control-plane`) y las imágenes construidas con `docker compose build`. El nodo las toma del motor de Docker a través del *registry mirror* de Docker Desktop, por eso los manifiestos usan `imagePullPolicy: Always`: con `Never` fallan (la imagen no está "dentro" del nodo hasta que se pide) y con `IfNotPresent` el nodo se queda con la versión vieja de la etiqueta `:local` aunque se reconstruya. Con `Always` basta `kubectl rollout restart` para tomar la nueva (el mirror es local, así que es rápido).
 
 ```bash
 cd InfraBiblioTK
