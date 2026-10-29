@@ -74,16 +74,18 @@ kubectl delete -k .                               # quitarlo (el volumen de Mari
 
 ## El QR del celular (`MOVIL_URL`)
 
-Dentro de un contenedor no se ve la IP del computador, así que hay que darla. `scripts/ip-celular.ps1` toma la IP actual del Wi-Fi y la pone donde haga falta:
+Dentro de un contenedor no se ve la IP del computador, así que hay que darla. `scripts/ip-celular.ps1` busca sola la IP actual en la red local (el Wi-Fi primero; se salta adaptadores virtuales y la red 192.168.56.x de VirtualBox, mismo criterio que `NotificacionesBiblioTK/src/utils/movil.js`) y la pone donde haga falta:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1          # o -Interfaz Ethernet
+powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1            # una vez (o -Interfaz Ethernet)
+powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1 -Vigilar   # se queda corriendo
+powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1 -Url https://xxxx.trycloudflare.com
 ```
 
 - **Compose:** escribe `MOVIL_URL=http://<IP>:8080/movil/` en `movil.env` (no se sube; `notificaciones` lo lee con `env_file`, opcional) y, si Compose está arriba, recrea `notificaciones`.
 - **Kubernetes:** si existe el namespace `bibliotk`, hace `kubectl -n bibliotk set env deployment/notificaciones MOVIL_URL=http://<IP>/movil/` (`k8s/config.env` trae `http://localhost/movil/` de base; un `kubectl apply -k .` lo devuelve a ese valor, así que hay que volver a correr el script).
-- **Hay que correrlo cada vez que cambia la red** (la IP del Wi-Fi cambia) y volver a cargar la landing para que el QR sea el nuevo.
-- Si el celular dice "rechazó la conexión" o "no se puede acceder" con la IP correcta, la red no deja que los equipos se vean entre sí (pasa en redes de universidad u oficina, con aislamiento de clientes). Solución: conectar el computador al punto de acceso del celular y volver a correr el script.
+- **Cambio de red:** con `-Vigilar` revisa la IP cada 10 s (`-Segundos`) y actualiza el QR apenas cambia; sin él, hay que correrlo de nuevo en cada red. Después, volver a cargar la landing para ver el QR nuevo.
+- **Celular en otra red** (datos móviles, o una red con aislamiento de clientes, típica de universidad u oficina): la IP local no le sirve. Hay que publicar el gateway con un túnel (p. ej. `cloudflared tunnel --url http://localhost:8080`) y pasar esa dirección con `-Url` (sin `/movil/`, el script lo agrega). El socket de la app del celular va por el mismo origen, así que el túnel basta. Otra opción: conectar el computador al punto de acceso del celular y correr el script.
 
 ## Probar las apps del bibliotecario o del superadministrador
 
