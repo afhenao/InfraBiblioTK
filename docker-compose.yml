@@ -126,11 +126,12 @@ services:
       <<: *entorno
       PORT: "3006"
       REDIS_URL: redis://redis:6379
-    # El contenedor no ve la IP del computador: MOVIL_URL (para el QR del celular) la escribe
-    # scripts/ip-celular.ps1 en movil.env con la IP actual del Wi-Fi
-    env_file:
-      - path: ./movil.env
-        required: false
+      # El contenedor no ve la IP del computador: la URL del QR del celular la escribe
+      # scripts/ip-celular.ps1 en movil/url.txt (con -Vigilar, cada vez que cambia la red) y el
+      # servicio la lee en cada petición, sin reiniciarse
+      MOVIL_URL_ARCHIVO: /movil/url.txt
+    volumes:
+      - ./movil:/movil:ro
 
   front:
     build: ../BiblioTK-front

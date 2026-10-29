@@ -1,0 +1,3 @@
+# url.txt la escribe scripts/ip-celular.ps1 con la IP de la red actual: no se sube
+*
+!.gitignore

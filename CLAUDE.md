@@ -80,11 +80,12 @@ Dentro de un contenedor no se ve la IP del computador, así que hay que darla. `
 powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1            # una vez (o -Interfaz Ethernet)
 powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1 -Vigilar   # se queda corriendo
 powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1 -Url https://xxxx.trycloudflare.com
+powershell -ExecutionPolicy Bypass -File InfraBiblioTK\scripts\ip-celular.ps1 -Instalar   # o -Desinstalar
 ```
 
-- **Compose:** escribe `MOVIL_URL=http://<IP>:8080/movil/` en `movil.env` (no se sube; `notificaciones` lo lee con `env_file`, opcional) y, si Compose está arriba, recrea `notificaciones`.
-- **Kubernetes:** si existe el namespace `bibliotk`, hace `kubectl -n bibliotk set env deployment/notificaciones MOVIL_URL=http://<IP>/movil/` (`k8s/config.env` trae `http://localhost/movil/` de base; un `kubectl apply -k .` lo devuelve a ese valor, así que hay que volver a correr el script).
-- **Cambio de red:** con `-Vigilar` revisa la IP cada 10 s (`-Segundos`) y actualiza el QR apenas cambia; sin él, hay que correrlo de nuevo en cada red. Después, volver a cargar la landing para ver el QR nuevo.
+- **Compose:** escribe `http://<IP>:8080/movil/` en `movil/url.txt` (no se sube). La carpeta `movil/` está montada en `notificaciones` (`MOVIL_URL_ARCHIVO=/movil/url.txt`) y el servicio lee el archivo **en cada petición**: el QR cambia sin reiniciar nada (`movil.env` ya no se usa).
+- **Kubernetes:** si existe el namespace `bibliotk`, hace `kubectl -n bibliotk set env deployment/notificaciones MOVIL_URL=http://<IP>/movil/` (eso reinicia el pod; `k8s/config.env` trae `http://localhost/movil/` de base y un `kubectl apply -k .` lo devuelve a ese valor).
+- **Cambio de red:** con `-Vigilar` revisa la IP cada 10 s (`-Segundos`) y actualiza el QR apenas cambia; basta volver a cargar la landing. `-Instalar` crea una tarea programada del usuario ("BiblioTK - QR del celular", sin administrador) que lo deja vigilando, oculto, cada vez que inicia sesión; `-Desinstalar` la quita. Sin vigilante, hay que correr el script en cada red.
 - **Celular en otra red** (datos móviles, o una red con aislamiento de clientes, típica de universidad u oficina): la IP local no le sirve. Hay que publicar el gateway con un túnel (p. ej. `cloudflared tunnel --url http://localhost:8080`) y pasar esa dirección con `-Url` (sin `/movil/`, el script lo agrega). El socket de la app del celular va por el mismo origen, así que el túnel basta. Otra opción: conectar el computador al punto de acceso del celular y correr el script.
 
 ## Probar las apps del bibliotecario o del superadministrador
