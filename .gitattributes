@@ -1,0 +1,2 @@
+# Los scripts de bash corren en el servidor Linux: siempre con LF
+*.sh text eol=lf

@@ -1,0 +1,15 @@
+# Ajustes para el servidor (VM Ubuntu detrás de un túnel de Cloudflare). Se suma al compose de siempre:
+#   docker compose -f docker-compose.yml -f docker-compose.servidor.yml up -d --build
+# El dominio y las contraseñas van en .env (ver .env.servidor.example). El túnel entra por
+# http://localhost:8080; desde fuera de la VM no se publica ningún puerto.
+services:
+  # Redis y MariaDB solo dentro de la red de Compose (en el computador se publican para desarrollar)
+  redis:
+    ports: !reset []
+
+  mariadb:
+    ports: !reset []
+
+  gateway:
+    ports: !override
+      - "127.0.0.1:8080:8080"

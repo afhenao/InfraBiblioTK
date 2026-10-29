@@ -31,7 +31,9 @@ servicios ──▶ mariadb:3306 (volumen)    notificaciones ──▶ redis:637
 |---|---|
 | `docker-compose.yml` | Los 15 servicios (MariaDB, Redis, 7 backends, 5 apps y el gateway). Construye las imágenes `bibliotk/<servicio>:local` desde las carpetas vecinas |
 | `.env.example` | Contraseñas y `NOTIFICACIONES_CLAVE` para Compose (copiar como `.env`, que no se sube) |
-| `scripts/ip-celular.ps1` | Pone la IP actual del Wi-Fi en el QR del celular (`movil.env` en Compose, `set env` en Kubernetes) |
+| `docker-compose.servidor.yml` | Se suma al anterior en el servidor: sin puertos de Redis ni MariaDB y el gateway solo en `127.0.0.1:8080` (para el túnel) |
+| `scripts/servidor.sh` | En la VM: clona o actualiza los 12 repositorios junto a `InfraBiblioTK` y levanta Compose para el servidor |
+| `scripts/ip-celular.ps1` | Pone la IP actual de la red en el QR del celular (`movil/url.txt` en Compose, `set env` en Kubernetes) |
 | `gateway/nginx.conf.template` | Reparto por prefijo, WebSocket, bloqueo de `/interno` y DNS en cada petición |
 | `mariadb/initdb/` | `01-esquema.sql` (usuarios, materiales, préstamos, idénticas a la BD local) y `02-materiales.sql` (8 libros de ejemplo). Solo corren con el volumen vacío |
 | `kustomization.yaml` | Kubernetes: junta `k8s/*.yaml` y genera los ConfigMap (configuración, nginx, SQL inicial) y el Secret |
@@ -52,6 +54,26 @@ docker compose up -d redis          # solo Redis, para desarrollar con npm run d
 
 - La BD del contenedor es **otra** (volumen `bd`), no la MariaDB local: arranca con el esquema y los 8 libros, sin cuentas. Para verla en HeidiSQL: `127.0.0.1`, puerto **3307**, base `bibliotk`, usuario y contraseña **de cuando se creó el volumen**: `DB_USER`/`DB_PASSWORD` (o `root` / `DB_ROOT_PASSWORD`) de `InfraBiblioTK/.env`; sin `.env`, `bibliotk` / `bibliotk-local` o `root` / `bibliotk-root-local`. No es la contraseña de la MariaDB local. Solo se publica en el propio computador.
 - Usar `http://localhost:8080` en el computador (no `127.0.0.1`): la cookie y las URLs de destino son de `localhost`.
+
+## Servidor (VM Ubuntu + túnel de Cloudflare)
+
+El mismo Compose, con el dominio en `URL_PUBLICA` y `docker-compose.servidor.yml` encima. El túnel (`cloudflared` en la VM) es lo único que entra: apunta a `http://localhost:8080` y Cloudflare pone el HTTPS (WebSocket incluido).
+
+1. En la VM: Docker Engine con el plugin compose y `git` con acceso a los repositorios.
+2. Clonar `InfraBiblioTK` y crear `InfraBiblioTK/.env` (no se sube; contraseñas con `openssl rand -hex 24`; las de MariaDB solo se fijan con el volumen vacío):
+   ```
+   URL_PUBLICA=https://<dominio>          # con https y sin / al final
+   COOKIE_SECURE=true                     # la cookie de sesión solo viaja por HTTPS
+   DB_USER=bibliotk
+   DB_PASSWORD=<aleatoria>
+   DB_ROOT_PASSWORD=<aleatoria>
+   NOTIFICACIONES_CLAVE=<aleatoria>
+   ```
+3. `bash InfraBiblioTK/scripts/servidor.sh`: clona o actualiza los demás repositorios (rama `docker-kubernetes`) en la carpeta de al lado y hace `docker compose -f docker-compose.yml -f docker-compose.servidor.yml up -d --build`. Para actualizar después, el mismo comando.
+4. En el túnel: hostname público `<dominio>` → servicio `http://localhost:8080`.
+
+- `URL_PUBLICA` llena `ALLOWED_ORIGIN_1`, `APP_*_URL` de InicioSesion y `MOVIL_URL` (el QR muestra `https://<dominio>/movil/`, que sirve desde cualquier red). Sin ella, todo queda en `http://localhost:8080`, como en el computador.
+- La BD arranca vacía de cuentas (como en Compose local). Para crear un bibliotecario o superadmin, el `UPDATE` de abajo con `docker compose exec mariadb mariadb -u root -p bibliotk`.
 
 ## Kubernetes (Docker Desktop)
 

@@ -18,8 +18,9 @@ x-entorno: &entorno
   DB_USER: ${DB_USER:-bibliotk}
   DB_PASSWORD: ${DB_PASSWORD:-bibliotk-local}
   DB_NAME: bibliotk
-  # Un solo origen: el del gateway (las apps abren el socket y llaman a las APIs desde ahí)
-  ALLOWED_ORIGIN_1: http://localhost:8080
+  # Un solo origen: el del gateway (las apps abren el socket y llaman a las APIs desde ahí).
+  # En el servidor, URL_PUBLICA es el dominio (https://…, sin / al final)
+  ALLOWED_ORIGIN_1: ${URL_PUBLICA:-http://localhost:8080}
   NOTIFICACIONES_URL: http://notificaciones:3006/NotificacionesBiblioTK
   NOTIFICACIONES_CLAVE: ${NOTIFICACIONES_CLAVE:-clave-local-de-compose}
 
@@ -75,9 +76,10 @@ services:
       <<: *entorno
       PORT: "3001"
       # A qué app va cada cuenta tras el login (subrutas del gateway)
-      APP_USUARIO_URL: http://localhost:8080/lector/
-      APP_ADMIN_URL: http://localhost:8080/bibliotecario/
-      APP_SUPERADMIN_URL: http://localhost:8080/superadmin/
+      APP_USUARIO_URL: ${URL_PUBLICA:-http://localhost:8080}/lector/
+      APP_ADMIN_URL: ${URL_PUBLICA:-http://localhost:8080}/bibliotecario/
+      APP_SUPERADMIN_URL: ${URL_PUBLICA:-http://localhost:8080}/superadmin/
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
 
   perfil:
     <<: *backend
@@ -128,8 +130,9 @@ services:
       REDIS_URL: redis://redis:6379
       # El contenedor no ve la IP del computador: la URL del QR del celular la escribe
       # scripts/ip-celular.ps1 en movil/url.txt (con -Vigilar, cada vez que cambia la red) y el
-      # servicio la lee en cada petición, sin reiniciarse
+      # servicio la lee en cada petición, sin reiniciarse. Sin ese archivo (en el servidor), MOVIL_URL
       MOVIL_URL_ARCHIVO: /movil/url.txt
+      MOVIL_URL: ${URL_PUBLICA:-http://localhost:8080}/movil/
     volumes:
       - ./movil:/movil:ro
 
