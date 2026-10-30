@@ -68,12 +68,14 @@ El mismo Compose, con el dominio en `URL_PUBLICA` y `docker-compose.servidor.yml
    DB_PASSWORD=<aleatoria>
    DB_ROOT_PASSWORD=<aleatoria>
    NOTIFICACIONES_CLAVE=<aleatoria>
+   SUPERADMIN_EMAIL=<correo>              # superadmin inicial (opcional, ver abajo)
+   SUPERADMIN_CONTRASENA=<la tuya, 8+>
    ```
 3. `bash InfraBiblioTK/scripts/servidor.sh`: clona o actualiza los demás repositorios (rama `docker-kubernetes`) en la carpeta de al lado y hace `docker compose -f docker-compose.yml -f docker-compose.servidor.yml up -d --build`. Para actualizar después, el mismo comando.
 4. En el túnel: hostname público `<dominio>` → servicio `http://localhost:8080`.
 
 - `URL_PUBLICA` llena `ALLOWED_ORIGIN_1`, `APP_*_URL` de InicioSesion y `MOVIL_URL` (el QR muestra `https://<dominio>/movil/`, que sirve desde cualquier red). Sin ella, todo queda en `http://localhost:8080`, como en el computador.
-- La BD arranca vacía de cuentas (como en Compose local). Para crear un bibliotecario o superadmin, el `UPDATE` de abajo con `docker compose exec mariadb mariadb -u root -p bibliotk`.
+- **Superadmin:** el registro solo crea lectores. Con `SUPERADMIN_EMAIL` y `SUPERADMIN_CONTRASENA` en `.env` (opcional `SUPERADMIN_USUARIO`, por defecto `superadmin`), login crea esa cuenta al arrancar **si no hay ningún superadmin**; si ya hay uno, no toca nada, y si el correo ya está registrado no lo promueve (cualquiera podría registrarse antes con ese correo). Tras editar `.env`: `docker compose -f docker-compose.yml -f docker-compose.servidor.yml up -d login`. La contraseña la elige quien administra el servidor: nunca va en el repositorio. Alternativa a mano: `bash scripts/crear-superadmin.sh` (pide los datos). Desde la app de superadmin se cambia el rol de las demás cuentas (bibliotecarios).
 
 ## Kubernetes (Docker Desktop)
 

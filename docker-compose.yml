@@ -80,6 +80,10 @@ services:
       APP_ADMIN_URL: ${URL_PUBLICA:-http://localhost:8080}/bibliotecario/
       APP_SUPERADMIN_URL: ${URL_PUBLICA:-http://localhost:8080}/superadmin/
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Superadmin inicial: si están en .env y no hay ningún superadmin, login lo crea al arrancar
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+      SUPERADMIN_CONTRASENA: ${SUPERADMIN_CONTRASENA:-}
+      SUPERADMIN_USUARIO: ${SUPERADMIN_USUARIO:-}
 
   perfil:
     <<: *backend
