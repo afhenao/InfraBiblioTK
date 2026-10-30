@@ -32,6 +32,8 @@ servicios ──▶ mariadb:3306 (volumen)    notificaciones ──▶ redis:637
 | `docker-compose.yml` | Los 15 servicios (MariaDB, Redis, 7 backends, 5 apps y el gateway). Construye las imágenes `bibliotk/<servicio>:local` desde las carpetas vecinas |
 | `.env.example` | Contraseñas y `NOTIFICACIONES_CLAVE` para Compose (copiar como `.env`, que no se sube) |
 | `docker-compose.servidor.yml` | Se suma al anterior en el servidor: sin puertos de Redis ni MariaDB y el gateway solo en `127.0.0.1:8080` (para el túnel) |
+| `Jenkinsfile` | Pipeline del trabajo `bibliotk`: actualiza los 13 repositorios en el servidor, construye las imágenes de a una, levanta Compose, comprueba y limpia |
+| `jenkins/` | Jenkins del servidor (`docker-compose.yml` aparte, `Dockerfile` con el cliente de Docker y compose, `plugins.txt`, `semilla.groovy` que crea el trabajo) |
 | `scripts/servidor.sh` | En la VM: clona o actualiza los 12 repositorios junto a `InfraBiblioTK` y levanta Compose para el servidor |
 | `scripts/ip-celular.ps1` | Pone la IP actual de la red en el QR del celular (`movil/url.txt` en Compose, `set env` en Kubernetes) |
 | `gateway/nginx.conf.template` | Reparto por prefijo, WebSocket, bloqueo de `/interno` y DNS en cada petición |
@@ -76,6 +78,23 @@ El mismo Compose, con el dominio en `URL_PUBLICA` y `docker-compose.servidor.yml
 
 - `URL_PUBLICA` llena `ALLOWED_ORIGIN_1`, `APP_*_URL` de InicioSesion y `MOVIL_URL` (el QR muestra `https://<dominio>/movil/`, que sirve desde cualquier red). Sin ella, todo queda en `http://localhost:8080`, como en el computador.
 - **Superadmin:** el registro solo crea lectores. Con `SUPERADMIN_EMAIL` y `SUPERADMIN_CONTRASENA` en `.env` (opcional `SUPERADMIN_USUARIO`, por defecto `superadmin`), login crea esa cuenta al arrancar **si no hay ningún superadmin**; si ya hay uno, no toca nada, y si el correo ya está registrado no lo promueve (cualquiera podría registrarse antes con ese correo). Tras editar `.env`: `docker compose -f docker-compose.yml -f docker-compose.servidor.yml up -d login`. La contraseña la elige quien administra el servidor: nunca va en el repositorio. Alternativa a mano: `bash scripts/crear-superadmin.sh` (pide los datos). Desde la app de superadmin se cambia el rol de las demás cuentas (bibliotecarios).
+
+## Jenkins (despliegue continuo en el servidor)
+
+Jenkins corre en la misma VM, en su propio Compose (`jenkins/`, proyecto `bibliotk-jenkins`) para que siga arriba aunque BiblioTK se caiga. Usa el Docker del servidor por el socket: construye y levanta los contenedores de `bibliotk` igual que `servidor.sh`.
+
+```bash
+cd ~/bibliotk/InfraBiblioTK/jenkins
+DOCKER_GID=$(getent group docker | cut -d: -f3) docker compose up -d --build   # instalar o actualizar Jenkins
+docker compose logs -f jenkins
+docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword  # clave del asistente (una vez)
+```
+
+- **Acceso:** `127.0.0.1:8081` en la VM; el túnel lo publica en `https://jenkins.bibliotk.dpdns.org` (Public hostname → `http://localhost:8081`). **Siempre detrás de Cloudflare Access** (Zero Trust → Access → Applications, solo los correos del equipo): quien entra a Jenkins controla el Docker del servidor.
+- **Primer arranque:** el asistente pide la clave de `initialAdminPassword`, instalar los plugins sugeridos y crear la cuenta de administrador (la crea quien instala; no va en el repositorio). Como *Jenkins URL*, `https://jenkins.bibliotk.dpdns.org/`.
+- **Trabajo `bibliotk`:** lo crea `semilla.groovy` al arrancar (pipeline desde `Jenkinsfile` de este repo, rama `master`). Revisa los 13 repositorios cada 5 minutos (`pollSCM`) y despliega si alguno cambió; también con *Build Now* / *Build with Parameters* (`SIN_CACHE` reconstruye todo sin caché). Etapas: actualizar repositorios (en `/home/root2/bibliotk`, misma ruta dentro y fuera del contenedor, porque Compose monta archivos desde el servidor), construir de a una imagen (con 4 GB no caben las cinco apps de Vite a la vez), `up -d`, comprobar desde el gateway y `docker image prune`.
+- **Ramas:** servicios y apps en `docker-kubernetes`, `InfraBiblioTK` en `master` (un push ahí se despliega solo en ≤5 minutos).
+- **Recursos:** la VM necesita al menos 2 CPU y 4 GB de RAM (Jenkins tiene `-Xmx512m` y `mem_limit: 1g`; las imágenes las construye el Docker del servidor).
 
 ## Kubernetes (Docker Desktop)
 

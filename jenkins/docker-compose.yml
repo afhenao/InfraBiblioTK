@@ -1,0 +1,32 @@
+# Jenkins del servidor, aparte de BiblioTK (si BiblioTK se cae, Jenkins sigue para volver a desplegar):
+#   cd InfraBiblioTK/jenkins && DOCKER_GID=$(getent group docker | cut -d: -f3) docker compose up -d --build
+# El túnel de Cloudflare publica http://localhost:8081 en https://jenkins.bibliotk.dpdns.org (con
+# Cloudflare Access delante). Ver "Jenkins" en InfraBiblioTK/CLAUDE.md
+name: bibliotk-jenkins
+
+services:
+  jenkins:
+    build: .
+    image: bibliotk/jenkins:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      TZ: America/Bogota
+      JAVA_OPTS: -Xmx512m -Duser.timezone=America/Bogota
+      # Dónde está el despliegue de BiblioTK (misma ruta dentro y fuera del contenedor)
+      BIBLIOTK_DIR: ${BIBLIOTK_DIR:-/home/root2/bibliotk}
+    # El socket del Docker del servidor: Jenkins construye y levanta los contenedores de BiblioTK.
+    # Ojo: quien controla Jenkins controla Docker (y por ende el servidor); por eso Cloudflare Access
+    group_add:
+      - "${DOCKER_GID:?falta DOCKER_GID: getent group docker | cut -d: -f3}"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Misma ruta que en el servidor: Compose resuelve los montajes de BiblioTK (gateway, initdb)
+      # en el Docker del servidor, así que las rutas tienen que existir allá
+      - ${BIBLIOTK_DIR:-/home/root2/bibliotk}:${BIBLIOTK_DIR:-/home/root2/bibliotk}
+    mem_limit: 1g
+
+volumes:
+  jenkins_home:
